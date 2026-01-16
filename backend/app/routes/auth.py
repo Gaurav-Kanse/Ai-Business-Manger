@@ -1,13 +1,13 @@
-from fastapi import APIRouter, HTTPException, status
+# app/routes/auth.py
+from fastapi import APIRouter, HTTPException, status, Depends
 from app.models.user import UserCreate, UserLogin
 from app.utils.security import hash_password, verify_password
-from app.utils.jwt import create_access_token
-from fastapi import Depends
-from app.utils.auth import get_current_user
+from app.dependencies.auth import create_access_token
+from app.core.security import get_current_user
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
-# TEMP user store (will replace with MongoDB)
+# TEMP user store
 fake_users_db = {}
 
 @router.post("/signup")

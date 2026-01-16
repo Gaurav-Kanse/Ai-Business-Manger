@@ -7,9 +7,9 @@ export function AuthProvider({ children }) {
     localStorage.getItem("token")
   );
 
-  const login = (jwt) => {
-    localStorage.setItem("token", jwt);
-    setToken(jwt);
+  const login = (accessToken) => {
+    localStorage.setItem("token", accessToken);
+    setToken(accessToken);
   };
 
   const logout = () => {
@@ -18,7 +18,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ token, login, logout }}>
+    <AuthContext.Provider value={{ token, login, logout, isAuth: !!token }}>
       {children}
     </AuthContext.Provider>
   );
