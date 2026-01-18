@@ -1,20 +1,24 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Paperclip, Send, X } from "lucide-react";
+import { Paperclip, Send } from "lucide-react";
 import TypingText from "./TypingText";
-import { useAuth } from "../context/AuthContext";
+import InvoiceCard from "./InvoiceCard";
 
-/* ---------- Typing Effect for AI ---------- */
-function TypingBubble({ text }) {
+/* ---------- AI Typing Bubble ---------- */
+function TypingBubble({ text = "" }) {
   const [displayed, setDisplayed] = useState("");
 
-  useState(() => {
+  useEffect(() => {
+    if (!text) return;
+
     let i = 0;
+    setDisplayed("");
+
     const interval = setInterval(() => {
       setDisplayed((prev) => prev + text[i]);
       i++;
       if (i >= text.length) clearInterval(interval);
-    }, 18);
+    }, 15);
 
     return () => clearInterval(interval);
   }, [text]);
@@ -23,29 +27,41 @@ function TypingBubble({ text }) {
 }
 
 export default function MainChat() {
-  const { isAuth } = useAuth();
-
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const fileInputRef = useRef(null);
+  /** introStage:
+   * 0 = typing first text
+   * 1 = typing second text (final)
+   */
+  const [introStage, setIntroStage] = useState(0);
 
-  const isChatStarted = messages.length > 0;
+  const fileInputRef = useRef(null);
+  const chatRef = useRef(null);
+
+  const chatStarted = messages.length > 0;
+
+  /* ---------- AUTO SCROLL ---------- */
+  useEffect(() => {
+    if (chatRef.current) {
+      chatRef.current.scrollTop = chatRef.current.scrollHeight;
+    }
+  }, [messages]);
 
   /* ---------- SEND MESSAGE ---------- */
   const sendMessage = async () => {
     if (!input.trim() && !file) return;
 
-    const userMessage = { role: "user", content: input };
-    setMessages((prev) => [...prev, userMessage]);
-    setInput("");
-    setLoading(true);
+    setMessages((prev) => [...prev, { role: "user", content: input }]);
 
     const formData = new FormData();
-    formData.append("message", userMessage.content);
+    formData.append("message", input);
     if (file) formData.append("invoice", file);
+
+    setInput("");
+    setLoading(true);
 
     try {
       const res = await fetch("http://localhost:8000/ai/chat", {
@@ -60,13 +76,20 @@ export default function MainChat() {
 
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: data.reply },
+        {
+          role: "assistant",
+          content: data.reply || "Done.",
+          invoice: data.invoice || null,
+          lowStock: data.low_stock || [],
+        },
       ]);
 
       setFile(null);
-    } catch (err) {
-      console.error(err);
-      alert("AI error");
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: "Something went wrong." },
+      ]);
     } finally {
       setLoading(false);
     }
@@ -76,34 +99,42 @@ export default function MainChat() {
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex justify-center px-4">
       <motion.div
         layout
-        className={`w-full max-w-4xl flex flex-col transition-all duration-700
-          ${isChatStarted ? "justify-between py-20" : "justify-center"}
-        `}
+        transition={{ duration: 0.6, ease: "easeInOut" }}
+        className={`w-full max-w-4xl flex flex-col ${
+          chatStarted ? "py-16" : "justify-center"
+        }`}
       >
+        {/* ---------- INTRO ---------- */}
+        {!chatStarted && (
+          <div className="text-center mb-14 min-h-[150px] flex flex-col items-center justify-center">
+            {introStage === 0 && (
+              <TypingText
+                texts={["Hello, welcome to DukaanGPT"]}
+                allowDelete
+                onComplete={() => setIntroStage(1)}
+                className="text-4xl font-semibold"
+              />
+            )}
 
-        {/* INTRO */}
-        {!isChatStarted && (
-          <motion.div
-            layout
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center mb-10"
-          >
-            <TypingText
-              texts={["Smart Invoice & Inventory Assistant"]}
-              className="text-4xl font-semibold"
-            />
+            {introStage === 1 && (
+              <TypingText
+                texts={["Smart Invoice & Inventory Assistant"]}
+                allowDelete={false}
+                className="text-4xl font-semibold"
+              />
+            )}
+
             <p className="text-gray-500 mt-4">
               Upload invoices • Ask questions • Get insights
             </p>
-          </motion.div>
+          </div>
         )}
 
-        {/* CHAT AREA */}
-        {isChatStarted && (
-          <motion.div
-            layout
-            className="flex-1 space-y-4 overflow-y-auto mb-6 px-2"
+        {/* ---------- CHAT AREA ---------- */}
+        {chatStarted && (
+          <div
+            ref={chatRef}
+            className="flex-1 space-y-4 overflow-y-auto mb-10 pr-1"
           >
             {messages.map((msg, i) => (
               <div
@@ -113,7 +144,7 @@ export default function MainChat() {
                 }`}
               >
                 <div
-                  className={`inline-block px-4 py-3 rounded-2xl text-sm leading-relaxed shadow max-w-[75%]
+                  className={`px-4 py-3 rounded-2xl shadow text-sm max-w-[75%]
                     ${
                       msg.role === "user"
                         ? "bg-emerald-600 text-white rounded-br-sm"
@@ -121,22 +152,35 @@ export default function MainChat() {
                     }`}
                 >
                   {msg.role === "assistant" ? (
-                    <TypingBubble text={msg.content} />
+                    <>
+                      <TypingBubble text={msg.content} />
+
+                      {msg.invoice && (
+                        <div className="mt-3">
+                          <InvoiceCard
+                            data={msg.invoice}
+                            lowStock={msg.lowStock}
+                          />
+                        </div>
+                      )}
+                    </>
                   ) : (
                     msg.content
                   )}
                 </div>
               </div>
             ))}
-          </motion.div>
+          </div>
         )}
 
-        {/* INPUT BAR */}
+        {/* ---------- INPUT BAR ---------- */}
         <motion.div
           layout
-          className="bg-white border rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3"
+          transition={{ duration: 0.5 }}
+          className={`bg-white border rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3
+            ${chatStarted ? "" : "mx-auto w-full max-w-xl"}
+          `}
         >
-          {/* FILE BUTTON */}
           <button
             onClick={() => fileInputRef.current.click()}
             className="text-gray-400 hover:text-emerald-600"
@@ -144,40 +188,26 @@ export default function MainChat() {
             <Paperclip size={18} />
           </button>
 
-          {/* INPUT */}
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-            placeholder="Ask anything about your business…"
+            placeholder="Ask about inventory, invoices, insights…"
             className="flex-1 outline-none text-sm"
           />
 
-          {/* FILE PREVIEW */}
-          {file && (
-            <div className="flex items-center gap-1 text-xs bg-gray-100 px-2 py-1 rounded-lg">
-              {file.name.slice(0, 12)}…
-              <X
-                size={12}
-                className="cursor-pointer"
-                onClick={() => setFile(null)}
-              />
-            </div>
-          )}
-
-          {/* SEND */}
           <button
             onClick={sendMessage}
             disabled={loading}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl px-4 py-2 text-sm"
+            className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl px-4 py-2"
           >
-            {loading ? "…" : <Send size={16} />}
+            <Send size={16} />
           </button>
 
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*,.pdf"
+            accept="image/*,.pdf,.txt"
             hidden
             onChange={(e) => setFile(e.target.files[0])}
           />

@@ -1,21 +1,22 @@
 import { useEffect, useState } from "react";
 
-export default function TypingBubble({ text, speed = 18 }) {
+function TypingBubble({ text = "" }) {
   const [displayed, setDisplayed] = useState("");
 
   useEffect(() => {
+    if (!text) return;
+
     let i = 0;
     setDisplayed("");
 
     const interval = setInterval(() => {
-      setDisplayed((prev) => prev + text.charAt(i));
+      setDisplayed((prev) => prev + text[i]);
       i++;
-
       if (i >= text.length) clearInterval(interval);
-    }, speed);
+    }, 18);
 
     return () => clearInterval(interval);
-  }, [text, speed]);
+  }, [text]);
 
   return <span>{displayed}</span>;
 }

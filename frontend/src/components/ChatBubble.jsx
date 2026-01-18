@@ -1,25 +1,34 @@
-import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 
-export default function ChatBubble({ role, content }) {
-  const isUser = role === "user";
+export default function ChatBubble({ role, text = "", typing = false }) {
+  const [displayText, setDisplayText] = useState("");
+
+  /* ---------- TYPING EFFECT ---------- */
+  useEffect(() => {
+    if (!typing) {
+      setDisplayText(text);
+      return;
+    }
+
+    let i = 0;
+    const interval = setInterval(() => {
+      setDisplayText((prev) => prev + text.charAt(i));
+      i++;
+      if (i >= text.length) clearInterval(interval);
+    }, 20);
+
+    return () => clearInterval(interval);
+  }, [text, typing]);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className={`flex ${isUser ? "justify-end" : "justify-start"} mb-3`}
+    <div
+      className={`max-w-[75%] px-4 py-3 rounded-2xl text-sm leading-relaxed
+        ${role === "user"
+          ? "ml-auto bg-emerald-600 text-white"
+          : "mr-auto bg-gray-100 text-gray-800"
+        }`}
     >
-      <div
-        className={`
-          max-w-[75%] px-4 py-3 rounded-2xl text-sm leading-relaxed
-          ${isUser
-            ? "bg-emerald-600 text-white rounded-br-sm"
-            : "bg-gray-100 text-gray-800 rounded-bl-sm"}
-        `}
-      >
-        {content}
-      </div>
-    </motion.div>
+      {displayText || " "}
+    </div>
   );
 }
-

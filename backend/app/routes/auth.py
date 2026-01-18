@@ -1,22 +1,18 @@
-# app/routes/auth.py
 from fastapi import APIRouter, HTTPException, status, Depends
 from app.models.user import UserCreate, UserLogin
 from app.utils.security import hash_password, verify_password
-from app.dependencies.auth import create_access_token
-from app.core.security import get_current_user
+from app.utils.jwt import create_access_token
+from app.dependencies.auth import get_current_user
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
-# TEMP user store
 fake_users_db = {}
+
 
 @router.post("/signup")
 def signup(user: UserCreate):
     if user.email in fake_users_db:
-        raise HTTPException(
-            status_code=400,
-            detail="User already exists"
-        )
+        raise HTTPException(status_code=400, detail="User already exists")
 
     fake_users_db[user.email] = {
         "email": user.email,
@@ -24,6 +20,7 @@ def signup(user: UserCreate):
     }
 
     return {"message": "User created successfully"}
+
 
 @router.post("/login")
 def login(user: UserLogin):
@@ -41,6 +38,7 @@ def login(user: UserLogin):
         "access_token": token,
         "token_type": "bearer"
     }
+
 
 @router.get("/me")
 def get_me(current_user: str = Depends(get_current_user)):

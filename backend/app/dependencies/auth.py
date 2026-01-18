@@ -1,18 +1,20 @@
-# app/dependencies/auth.py
-from datetime import datetime, timedelta
-from jose import jwt
-from app.core.jwt_config import SECRET_KEY, ALGORITHM
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from app.utils.jwt import decode_access_token
 
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
+security = HTTPBearer()
 
-def create_access_token(data: dict):
-    to_encode = data.copy()
 
-    # JWT requires sub to be string
-    if "sub" in to_encode:
-        to_encode["sub"] = str(to_encode["sub"])
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    token = credentials.credentials
+    payload = decode_access_token(token)
 
-    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    to_encode.update({"exp": expire})
+    if not payload or "sub" not in payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+        )
 
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return payload["sub"]
