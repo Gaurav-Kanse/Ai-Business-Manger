@@ -1,22 +1,31 @@
-import { useEffect, useState } from "react";
+function TypingBubble({ text }) {
+  const safeText = typeof text === "string" ? text : "";
 
-function TypingBubble({ text = "" }) {
   const [displayed, setDisplayed] = useState("");
 
   useEffect(() => {
-    if (!text) return;
-
-    let i = 0;
     setDisplayed("");
+    if (!safeText) return;
 
-    const interval = setInterval(() => {
-      setDisplayed((prev) => prev + text[i]);
-      i++;
-      if (i >= text.length) clearInterval(interval);
-    }, 18);
+    let index = 0;
+    let cancelled = false;
 
-    return () => clearInterval(interval);
-  }, [text]);
+    const type = () => {
+      if (cancelled) return;
+      if (index >= safeText.length) return;
+
+      setDisplayed((prev) => prev + safeText.charAt(index));
+      index++;
+
+      setTimeout(type, 15);
+    };
+
+    type();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [safeText]);
 
   return <span>{displayed}</span>;
 }

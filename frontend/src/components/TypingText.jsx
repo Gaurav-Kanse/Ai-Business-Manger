@@ -1,62 +1,78 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState } from "react";
 
 export default function TypingText({
-  texts,
+  texts = [],
   speed = 80,
   deleteSpeed = 50,
   delayBeforeDelete = 800,
+  allowDelete = false,
   onComplete,
-  allowDelete = false,   // 👈 NEW FLAG
   className = "",
 }) {
-  const [charIndex, setCharIndex] = useState(0)
-  const [displayText, setDisplayText] = useState("")
-  const [deleting, setDeleting] = useState(false)
-  const fullText = texts[0]
+  // SAFETY: normalize texts
+  const sequence = Array.isArray(texts) ? texts : [];
+
+  const [textIndex, setTextIndex] = useState(0);
+  const [charIndex, setCharIndex] = useState(0);
+  const [displayText, setDisplayText] = useState("");
+  const [deleting, setDeleting] = useState(false);
+
+  const currentText = sequence[textIndex] || "";
 
   useEffect(() => {
-    let timer
+    if (!currentText) return;
 
-    // TYPING
-    if (!deleting && charIndex < fullText.length) {
+    let timer;
+
+    // ---------- TYPING ----------
+    if (!deleting && charIndex < currentText.length) {
       timer = setTimeout(() => {
-        setDisplayText(fullText.slice(0, charIndex + 1))
-        setCharIndex(charIndex + 1)
-      }, speed)
+        setDisplayText(currentText.slice(0, charIndex + 1));
+        setCharIndex((c) => c + 1);
+      }, speed);
     }
 
-    // WAIT BEFORE DELETE
-    else if (!deleting && charIndex === fullText.length && allowDelete) {
+    // ---------- WAIT THEN DELETE ----------
+    else if (
+      !deleting &&
+      charIndex === currentText.length &&
+      allowDelete &&
+      textIndex < sequence.length - 1
+    ) {
       timer = setTimeout(() => {
-        setDeleting(true)
-      }, delayBeforeDelete)
+        setDeleting(true);
+      }, delayBeforeDelete);
     }
 
-    // DELETING
+    // ---------- DELETING ----------
     else if (deleting && charIndex > 0) {
       timer = setTimeout(() => {
-        setDisplayText(fullText.slice(0, charIndex - 1))
-        setCharIndex(charIndex - 1)
-      }, deleteSpeed)
+        setDisplayText(currentText.slice(0, charIndex - 1));
+        setCharIndex((c) => c - 1);
+      }, deleteSpeed);
     }
 
-    // DONE
+    // ---------- MOVE TO NEXT TEXT ----------
     else if (deleting && charIndex === 0) {
-      onComplete?.()
+      setDeleting(false);
+      setTextIndex((i) => i + 1);
     }
 
-    // NO DELETE MODE (FINAL TITLE)
-    else if (!allowDelete && charIndex === fullText.length) {
-      onComplete?.()
+    // ---------- FINAL TEXT DONE ----------
+    else if (
+      !allowDelete &&
+      charIndex === currentText.length
+    ) {
+      onComplete?.();
     }
 
-    return () => clearTimeout(timer)
-  }, [charIndex, deleting])
+    return () => clearTimeout(timer);
+  }, [charIndex, deleting, currentText, textIndex]);
 
   return (
     <h2 className={className}>
       {displayText}
-      <span className="opacity-50 animate-pulse">|</span>
+      <span className="opacity-40 animate-pulse">|</span>
     </h2>
-  )
+  );
 }

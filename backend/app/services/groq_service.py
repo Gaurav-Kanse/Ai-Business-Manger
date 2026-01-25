@@ -7,28 +7,22 @@ client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 MODEL = "llama-3.1-8b-instant"
 
 
-def chat_with_groq(prompt: str) -> str:
-    """
-    Generic chat function for normal messages or
-    invoice + question combined prompts.
-    """
-    response = client.chat.completions.create(
-        model=MODEL,
-        messages=[
-            {
-                "role": "system",
-                "content": "You are a helpful business assistant.",
-            },
-            {
-                "role": "user",
-                "content": prompt,
-            },
-        ],
-        temperature=0.3,
-        max_tokens=600,
-    )
+def chat_with_groq(message: str) -> str:
+    try:
+        response = client.chat.completions.create(
+            model=MODEL,
+            messages=[
+                {"role": "system", "content": "You are a helpful business assistant."},
+                {"role": "user", "content": message},
+            ],
+        )
 
-    return response.choices[0].message.content.strip()
+        content = response.choices[0].message.content
+        return content.strip() if content else "No response generated."
+
+    except Exception as e:
+        print("Groq error:", e)
+        return "Sorry, I couldn't process that request right now."
 
 
 def extract_invoice_json(ocr_text: str) -> dict:

@@ -4,26 +4,40 @@ import { Paperclip, Send } from "lucide-react";
 import TypingText from "./TypingText";
 import InvoiceCard from "./InvoiceCard";
 
-/* ---------- AI Typing Bubble ---------- */
+/* ---------- SAFE AI Typing Bubble (NO BUGS) ---------- */
 function TypingBubble({ text = "" }) {
-  const [displayed, setDisplayed] = useState("");
+  const [shown, setShown] = useState("");
+  const hasTyped = useRef(false);
 
   useEffect(() => {
     if (!text) return;
 
+    // already animated → show instantly
+    if (hasTyped.current) {
+      setShown(text);
+      return;
+    }
+
+    hasTyped.current = true;
     let i = 0;
-    setDisplayed("");
+    setShown("");
 
     const interval = setInterval(() => {
-      setDisplayed((prev) => prev + text[i]);
-      i++;
-      if (i >= text.length) clearInterval(interval);
+      setShown((prev) => {
+        if (i >= text.length) {
+          clearInterval(interval);
+          return prev;
+        }
+        const next = prev + text[i];
+        i++;
+        return next;
+      });
     }, 15);
 
     return () => clearInterval(interval);
   }, [text]);
 
-  return <span>{displayed}</span>;
+  return <span>{shown}</span>;
 }
 
 export default function MainChat() {
@@ -32,10 +46,10 @@ export default function MainChat() {
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  /** introStage:
-   * 0 = typing first text
-   * 1 = typing second text (final)
-   */
+  /* introStage:
+     0 → first typing
+     1 → final typing (stays)
+  */
   const [introStage, setIntroStage] = useState(0);
 
   const fileInputRef = useRef(null);
@@ -54,10 +68,15 @@ export default function MainChat() {
   const sendMessage = async () => {
     if (!input.trim() && !file) return;
 
-    setMessages((prev) => [...prev, { role: "user", content: input }]);
+    const userText = input;
+
+    setMessages((prev) => [
+      ...prev,
+      { role: "user", content: userText },
+    ]);
 
     const formData = new FormData();
-    formData.append("message", input);
+    formData.append("message", userText);
     if (file) formData.append("invoice", file);
 
     setInput("");
@@ -78,7 +97,7 @@ export default function MainChat() {
         ...prev,
         {
           role: "assistant",
-          content: data.reply || "Done.",
+          content: String(data.reply || ""),
           invoice: data.invoice || null,
           lowStock: data.low_stock || [],
         },

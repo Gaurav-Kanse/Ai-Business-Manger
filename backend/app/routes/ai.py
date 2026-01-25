@@ -16,33 +16,37 @@ async def ai_chat(
     invoice_data = None
     low_stock = []
 
-    if invoice:
-        ocr_text = await parse_invoice(invoice)
+    try:
+        if invoice:
+            ocr_text = await parse_invoice(invoice)
 
-        invoice_data = extract_invoice_json(ocr_text)
+            invoice_data = extract_invoice_json(ocr_text)
 
-        if invoice_data:
-            low_stock = update_inventory(invoice_data)
+            if invoice_data:
+                low_stock = update_inventory(invoice_data)
 
-        # 🔥 AI summary WITH invoice context
-        reply = chat_with_groq(
-            f"""
-            You are a business assistant.
-            Here is invoice data:
-            {invoice_data}
+            reply = chat_with_groq(
+                f"""
+You are a business assistant.
 
-            User request:
-            {message}
+Here is the invoice data:
+{invoice_data}
 
-            Summarize clearly and highlight important points.
-            """
-        )
+User request:
+{message}
 
-    else:
-        reply = chat_with_groq(message)
+Summarize clearly and highlight important points.
+"""
+            )
+        else:
+            reply = chat_with_groq(message)
+
+    except Exception as e:
+        print("AI route error:", e)
+        reply = "Sorry, something went wrong while processing your request."
 
     return {
-        "reply": reply,
+        "reply": reply or "No response generated.",
         "invoice": invoice_data,
         "low_stock": low_stock,
         "user": user,

@@ -7,9 +7,9 @@ export function AuthProvider({ children }) {
     localStorage.getItem("token")
   );
 
-  const login = (accessToken) => {
-    localStorage.setItem("token", accessToken);
-    setToken(accessToken);
+  const login = (newToken) => {
+    localStorage.setItem("token", newToken);
+    setToken(newToken);
   };
 
   const logout = () => {
@@ -18,7 +18,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ token, login, logout, isAuth: !!token }}>
+    <AuthContext.Provider value={{ token, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
