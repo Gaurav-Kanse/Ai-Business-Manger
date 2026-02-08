@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Paperclip, Send } from "lucide-react";
+import { Paperclip, Send, X } from "lucide-react";
 import TypingText from "./TypingText";
 import InvoiceCard from "./InvoiceCard";
 
-/* ---------- SAFE AI Typing Bubble (NO BUGS) ---------- */
+/* ---------- SAFE AI Typing Bubble ---------- */
 function TypingBubble({ text = "" }) {
   const [shown, setShown] = useState("");
   const hasTyped = useRef(false);
@@ -12,7 +12,6 @@ function TypingBubble({ text = "" }) {
   useEffect(() => {
     if (!text) return;
 
-    // already animated → show instantly
     if (hasTyped.current) {
       setShown(text);
       return;
@@ -46,10 +45,6 @@ export default function MainChat() {
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  /* introStage:
-     0 → first typing
-     1 → final typing (stays)
-  */
   const [introStage, setIntroStage] = useState(0);
 
   const fileInputRef = useRef(null);
@@ -70,10 +65,13 @@ export default function MainChat() {
 
     const userText = input;
 
-    setMessages((prev) => [
-      ...prev,
-      { role: "user", content: userText },
-    ]);
+    // User text message
+    if (userText.trim()) {
+      setMessages((prev) => [
+        ...prev,
+        { role: "user", content: userText },
+      ]);
+    }
 
     const formData = new FormData();
     formData.append("message", userText);
@@ -138,7 +136,6 @@ export default function MainChat() {
             {introStage === 1 && (
               <TypingText
                 texts={["Smart Invoice & Inventory Assistant"]}
-                allowDelete={false}
                 className="text-4xl font-semibold"
               />
             )}
@@ -173,7 +170,6 @@ export default function MainChat() {
                   {msg.role === "assistant" ? (
                     <>
                       <TypingBubble text={msg.content} />
-
                       {msg.invoice && (
                         <div className="mt-3">
                           <InvoiceCard
@@ -195,11 +191,12 @@ export default function MainChat() {
         {/* ---------- INPUT BAR ---------- */}
         <motion.div
           layout
-          transition={{ duration: 0.5 }}
-          className={`bg-white border rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3
+          transition={{ duration: 0.4 }}
+          className={`bg-white border rounded-2xl shadow-lg px-3 py-2 flex items-center gap-2
             ${chatStarted ? "" : "mx-auto w-full max-w-xl"}
           `}
         >
+          {/* Attachment Button */}
           <button
             onClick={() => fileInputRef.current.click()}
             className="text-gray-400 hover:text-emerald-600"
@@ -207,14 +204,33 @@ export default function MainChat() {
             <Paperclip size={18} />
           </button>
 
+          {/* Attached File Pill */}
+          {file && (
+            <div className="
+              flex items-center gap-2
+              bg-gray-100 border rounded-lg
+              px-3 py-1 text-xs
+              max-w-[200px]
+            ">
+              <span className="truncate">{file.name}</span>
+              <X
+                size={14}
+                className="cursor-pointer text-gray-500 hover:text-red-500"
+                onClick={() => setFile(null)}
+              />
+            </div>
+          )}
+
+          {/* Input */}
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-            placeholder="Ask about inventory, invoices, insights…"
-            className="flex-1 outline-none text-sm"
+            placeholder="Ask anything…"
+            className="flex-1 outline-none text-sm bg-transparent"
           />
 
+          {/* Send */}
           <button
             onClick={sendMessage}
             disabled={loading}
