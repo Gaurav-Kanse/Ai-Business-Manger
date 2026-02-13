@@ -1,19 +1,5 @@
-If you want to see it just clone it or dowmload it then go to frontend, 
-To run frontend run following commands:
- cd frontend ,
- npm i ,
- npm run dev 
+DukaanGPT is an AI-powered Smart Invoice and Inventory Assistant designed especially for small businesses and local shop owners. The idea behind the project is simple: instead of manually reading invoices and updating stock records, users can upload an invoice (PDF or image), and the system automatically extracts the important information using OCR and AI. It then converts the raw invoice text into structured data, summarizes the key details like total amount and items purchased, and updates inventory accordingly.
 
-To run backend open new terminal and run this commands:
+The platform also includes an AI chat assistant that allows users to ask business-related questions, get insights about their invoices, and receive intelligent suggestions such as low-stock alerts or restocking recommendations. A clean dashboard view provides quick analytics like total invoice value, extracted items, and stock warnings.
 
-cd backend ,
-.\venv\Scripts\activate ,
-uvicorn app.main:app --reload 
-
-and create a .env file for it in backend in this format :
-APP_NAME=AI Business Manager
-ENV=development
-JWT_SECRET=supersecretkey123
-JWT_ALGORITHM=HS256
-JWT_EXPIRE_MINUTES=60
-GROQ_API_KEY= Replace it with your Api key !!
+In short, DukaanGPT combines AI, automation, and a modern user interface to simplify invoice management and inventory tracking for small businesses, making their workflow faster, smarter, and more efficient.
